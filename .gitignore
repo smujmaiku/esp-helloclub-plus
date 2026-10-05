@@ -1,4 +1,12 @@
+secrets.ini
+
+# pio
+.dummy/
 .pio
+managed_components/
+CMakeLists.txt
+dependencies.lock
+sdkconfig.*
 
 # Trash
 .DS_Store
