@@ -1,6 +1,8 @@
 #include <Arduino.h>
 #include <WiFi.h>
 
+#include "./esp-peerjs.h"
+
 // ESP Status LED signals
 // 4 blinks: Disconnected from wifi
 // 3 blinks: Connected to wifi, Disconnected from peerjs signaling
@@ -12,7 +14,13 @@
 #define STS_LED 48
 const unsigned long MAX_MILLIS = 3900000000;  // ~45 days
 
-#if !defined(WIFI_SSID) || !defined(WIFI_PASS)
+#define PEERJS_HOST "0.peerjs.com"
+#define PEERJS_PORT 9000
+#define PEERJS_PATH "/myapp"
+
+ESP32PeerJS* peerLink = nullptr;
+
+#if !defined(WIFI_SSID) || !defined(WIFI_PASS) || !defined(PEER_ID)
 #error "Define secrets.ini"
 #endif
 
@@ -36,13 +44,17 @@ void delayPlus(unsigned long ms, byte status) {
 void handleStatus() {
   if (WiFi.status() != WL_CONNECTED) {  // Wifi disconnected
     statusLED(4);
-    // } else if (!peer.isSignalOpen()) {  // Peerjs disconnected
-    //   statusLED(3);
-    // } else if (!peer.isOpen()) {  // Waiting on Peer
-    //   statusLED(2);
+  } else if (!peer.isSignalingConnected()) {  // Peerjs disconnected
+    statusLED(3);
+  } else if (!peer.isPeerConnected()) {  // Waiting on Peer
+    statusLED(2);
   } else {  // All good
     statusLED(1);
   }
+}
+
+void handlePeerJSON(const String& rawJson) {
+  printf("[peer] data:\n%s\n", rawJson.c_str());
 }
 
 void setup() {
@@ -59,19 +71,36 @@ void setup() {
   }
 
   Serial.printf("[wifi] ip %s\n", WiFi.localIP().toString().c_str());
+
+  peerLink = new ESP32PeerJS(PEERJS_HOST, PEERJS_PORT, PEERJS_PATH, PEER_ID);
+  peerLink.begin(onJsonReceived);
 }
 
 void loop() {
   // TODO: Handle Wifi
-  // TODO: Handle Peerjs
+  peerLink.handle();
   // TODO: Buffer keypad
 
   handleStatus();
 
   // TODO: Pop keypad buffer
 
+  // testing
+  static unsigned long lastStatusPrint = 0;
+  if (millis() - lastSendTime > 4000) {
+    lastSendTime = millis();
+
+    if (peerLink.isPeerConnected()) {
+      Serial.println("[peer] sending ok");
+      String jsonPayload = "{\"type\":\"status\",\"payload\":\"ok\"}";
+      peerLink.sendJSON(jsonPayload);
+    } else {
+      Serial.println("[peer] cannot send status");
+    }
+  }
+
   // Restart esp before millis overflow
-  if (millis() > MAX_MILLIS) {  // TODO: !peer.isOpen() &&
+  if (!peer.isPeerConnected && millis() > MAX_MILLIS) {
     ESP.restart();
   }
 
