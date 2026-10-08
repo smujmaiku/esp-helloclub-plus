@@ -44,9 +44,9 @@ void delayPlus(unsigned long ms, byte status) {
 void handleStatus() {
   if (WiFi.status() != WL_CONNECTED) {  // Wifi disconnected
     statusLED(4);
-  } else if (!peer.isSignalingConnected()) {  // Peerjs disconnected
+  } else if (!peerLink->isSignalingConnected()) {  // Peerjs disconnected
     statusLED(3);
-  } else if (!peer.isPeerConnected()) {  // Waiting on Peer
+  } else if (!peerLink->isPeerConnected()) {  // Waiting on Peer
     statusLED(2);
   } else {  // All good
     statusLED(1);
@@ -73,12 +73,12 @@ void setup() {
   Serial.printf("[wifi] ip %s\n", WiFi.localIP().toString().c_str());
 
   peerLink = new ESP32PeerJS(PEERJS_HOST, PEERJS_PORT, PEERJS_PATH, PEER_ID);
-  peerLink.begin(onJsonReceived);
+  peerLink->begin(handlePeerJSON);
 }
 
 void loop() {
   // TODO: Handle Wifi
-  peerLink.handle();
+  peerLink->handle();
   // TODO: Buffer keypad
 
   handleStatus();
@@ -86,21 +86,21 @@ void loop() {
   // TODO: Pop keypad buffer
 
   // testing
-  static unsigned long lastStatusPrint = 0;
+  static unsigned long lastSendTime = 0;
   if (millis() - lastSendTime > 4000) {
     lastSendTime = millis();
 
-    if (peerLink.isPeerConnected()) {
+    if (peerLink->isPeerConnected()) {
       Serial.println("[peer] sending ok");
       String jsonPayload = "{\"type\":\"status\",\"payload\":\"ok\"}";
-      peerLink.sendJSON(jsonPayload);
+      peerLink->sendJSON(jsonPayload);
     } else {
       Serial.println("[peer] cannot send status");
     }
   }
 
   // Restart esp before millis overflow
-  if (!peer.isPeerConnected && millis() > MAX_MILLIS) {
+  if (!peerLink->isPeerConnected() && millis() > MAX_MILLIS) {
     ESP.restart();
   }
 
