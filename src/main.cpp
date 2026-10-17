@@ -12,11 +12,15 @@
 // Nothing: Crashed
 
 #define STS_LED 48
+
+// libpeer generates DTLS keys on the loop task; the 8KB default is too small
+SET_LOOP_TASK_STACK_SIZE(16 * 1024);
+
 const unsigned long MAX_MILLIS = 3900000000;  // ~45 days
 
 #define PEERJS_HOST "0.peerjs.com"
-#define PEERJS_PORT 9000
-#define PEERJS_PATH "/myapp"
+#define PEERJS_PORT 443
+#define PEERJS_PATH "/"
 
 ESP32PeerJS* peerLink = nullptr;
 
