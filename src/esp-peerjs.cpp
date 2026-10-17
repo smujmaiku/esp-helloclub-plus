@@ -2,11 +2,13 @@
 
 #include <WiFi.h>
 
-ESP32PeerJS::ESP32PeerJS(String host, int port, String path, String peerId) {
+ESP32PeerJS::ESP32PeerJS(String host, int port, String path, String peerId,
+                         bool secure) {
   _host = host;
   _port = port;
   _path = path;
   _peerId = peerId;
+  _secure = secure;
   _peerConnection = NULL;
   _isConnectedToSignaling = false;
   _isPeerConnected = false;
@@ -39,6 +41,11 @@ bool ESP32PeerJS::begin(DataCallback callback) {
   });
 
   _wsClient.setReconnectInterval(5000);
+  if (_secure) {
+    _wsClient.beginSSL(_host, _port, _calculatedPath);
+  } else {
+    _wsClient.begin(_host, _port, _calculatedPath);
+  }
   return true;
 }
 

@@ -9,7 +9,8 @@ class ESP32PeerJS {
  public:
   typedef void (*DataCallback)(const String& jsonString);
 
-  ESP32PeerJS(String host, int port, String path, String peerId);
+  ESP32PeerJS(String host, int port, String path, String peerId,
+              bool secure = true);
 
   bool begin(DataCallback callback);
   bool sendJSON(const String& jsonPayload);
@@ -22,6 +23,7 @@ class ESP32PeerJS {
   int _port;
   String _path;
   String _peerId;
+  bool _secure;
   String _calculatedPath;
 
   WebSocketsClient _wsClient;
