@@ -102,6 +102,12 @@ void loop() {
       Serial.println("[peer] cannot send status");
     }
   }
+  if (Serial.available()) {
+    String input = Serial.readStringUntil('\n');
+
+    String jsonPayload = "{\"type\":\"scan\",\"payload\":\"" + input + "\"}";
+    peerLink->sendJSON(jsonPayload);
+  }
 
   // Restart esp before millis overflow
   if (!peerLink->isPeerConnected() && millis() > MAX_MILLIS) {
