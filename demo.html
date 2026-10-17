@@ -1,0 +1,122 @@
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>HelloClub Plus Test</title>
+  <style>
+    body {
+      background: #181818;
+      color: #eee;
+      max-width: 800px;
+      margin: 2rem auto;
+      padding: 0 8px;
+    }
+
+    label {
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    #log {
+      padding: 8px;
+      background: #262626;
+      color: #eee;
+      font: 11px ui-monospace, monospace;
+      height: 50vh;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Badge Plus test client</h1>
+
+  <label for="deviceId">Device peer id</label>
+  <input id="deviceId" value="badge-plus-change-me">
+
+  <label for="host">PeerServer host (blank for the public PeerJS cloud)</label>
+  <input id="host" placeholder="0.peerjs.com">
+
+  <button id="connect">Connect</button>
+  <button id="ping">Send ping</button>
+
+  <div id="status">...</div>
+  <div id="log"></div>
+
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    const log = (line) => {
+      const at = new Date().toLocaleTimeString();
+      $('log').textContent += `${at}  ${line}\n`;
+      $('log').scrollTop = $('log').scrollHeight;
+    }
+
+    const setStatus = (text) => {
+      $('status').textContent = text;
+    }
+
+    let peer = null;
+    let conn = null;
+
+    $('connect').addEventListener('click', () => {
+      if (peer) peer.destroy();
+
+      const host = $('host').value.trim();
+      const options = host ? { host, secure: true, port: 443 } : {};
+      peer = new Peer(options);
+
+      peer.on('error', (err) => {
+        setStatus('error: ' + err.type);
+        log('peer error: ' + err.message);
+      });
+
+      peer.on('open', (myId) => {
+        setStatus('signaling ok, connecting to device');
+        log('registered as ' + myId);
+
+        conn = peer.connect($('deviceId').value.trim(), {
+          serialization: 'raw',
+        });
+
+        conn.on('open', () => {
+          setStatus('connected');
+          $('ping').disabled = false;
+          log('data channel open');
+        });
+
+        conn.on('data', (text) => {
+          try {
+            // { "type": "status", "payload": "ok" }
+            log('recv ' + JSON.stringify(JSON.parse(text)));
+          } catch (err) {
+            log('recv (not json) ' + text);
+          }
+        });
+
+        conn.on('close', () => {
+          setStatus('closed');
+          $('ping').disabled = true;
+          log('data channel closed');
+        });
+
+        conn.on('error', (err) => log('conn error: ' + err));
+      });
+    });
+
+    $('ping').addEventListener('click', () => {
+      if (!conn || !conn.open) return;
+      conn.send(JSON.stringify({ type: 'ping', at: Date.now() }));
+      log('sent ping');
+    });
+  </script>
+</body>
+
+</html>
